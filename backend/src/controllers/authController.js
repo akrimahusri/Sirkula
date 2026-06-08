@@ -106,7 +106,7 @@ exports.login = async (req, res, next) => {
         token: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         role,
-        user: { id: account._id, email: account.email, nama: account.nama || account.namaUsaha }
+        user: { id: account._id, email: account.email, nama: account.nama || account.namaUsaha, role }
       },
       statusCode: 200
     });
@@ -247,7 +247,7 @@ exports.getMe = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan', errors: [], statusCode: 404 });
     }
 
-    res.status(200).json({ success: true, message: 'Profil berhasil diambil', data: account, statusCode: 200 });
+    res.status(200).json({ success: true, message: 'Profil berhasil diambil', data: { user: { ...account.toObject(), role } }, statusCode: 200 });
   } catch (error) {
     next(error);
   }

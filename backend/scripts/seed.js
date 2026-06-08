@@ -22,7 +22,7 @@ const seedDatabase = async () => {
     await Transaksi.deleteMany();
     await Chat.deleteMany();
 
-    const hashedPassword = await bcrypt.hash('password123', 10);
+    const rawPassword = 'password123';
 
     // 1. Buat User Masyarakat (Banda Aceh)
     const usersData = [
@@ -35,13 +35,13 @@ const seedDatabase = async () => {
 
     const users = [];
     for (const u of usersData) {
-      const user = await User.create({ ...u, password: hashedPassword, role: 'user', isVerified: true });
+      const user = await User.create({ ...u, password: rawPassword, role: 'user', isVerified: true });
       users.push(user);
     }
 
     // 2. Buat Admin
     const admin = await User.create({
-      nama: 'Admin Sirkula', email: 'admin@sirkula.id', password: hashedPassword, role: 'admin', noTelp: '080011112222',
+      nama: 'Admin Sirkula', email: 'admin@sirkula.id', password: rawPassword, role: 'admin', noTelp: '080011112222',
       alamat: 'Kantor Pusat Sirkula',
       lokasi: { lat: 0, lng: 0, alamatLengkap: 'Kantor Pusat Sirkula' }
     });
@@ -73,11 +73,12 @@ const seedDatabase = async () => {
 
     const mitras = [];
     for (const m of mitraData) {
-      const mitra = await Mitra.create({ ...m, password: hashedPassword });
+      const mitra = await Mitra.create({ ...m, password: rawPassword });
       mitras.push(mitra);
     }
 
     // 4. Buat Transaksi & Chat
+    const transaksis = [];
     const statuses = ['pending', 'diterima', 'dijemput', 'selesai', 'dibatalkan'];
     
     for (let i = 0; i < 10; i++) {
@@ -95,21 +96,27 @@ const seedDatabase = async () => {
         jadwalPenjemputan: new Date(),
         status: status
       });
+      transaksis.push(transaksi);
+    }
 
-      // Buat History Chat untuk transaksi yg sdh lewat status pending
-      if (status !== 'pending' && status !== 'dibatalkan') {
+    // Buat History Chat untuk transaksi yg sdh lewat status pending
+    for (const trx of transaksis) {
+      if (trx.status !== 'pending' && trx.status !== 'dibatalkan') {
         const chat = await Chat.create({
-          transaksiId: transaksi._id,
-          participants: [user._id, mitra._id],
+          transaksiId: trx._id,
+          participants: [
+            { userId: trx.userId, role: 'user' },
+            { userId: trx.mitraId, role: 'mitra' }
+          ],
           messages: [
-            { senderId: user._id, senderModel: 'User', content: 'Halo pak, saya mau jual botol plastik 5kg.', timestamp: new Date() },
-            { senderId: mitra._id, senderModel: 'Mitra', content: 'Siap bu, nanti sore saya jemput ya.', timestamp: new Date() }
+            { senderId: trx.userId, senderRole: 'user', content: 'Halo pak, saya mau jual botol plastik 5kg.', read: true },
+            { senderId: trx.mitraId, senderRole: 'mitra', content: 'Siap bu, nanti sore saya jemput ya.', read: true }
           ]
         });
         
         // Update chat ID ke transaksi
-        transaksi.chatId = chat._id;
-        await transaksi.save();
+        trx.chatId = chat._id;
+        await trx.save();
       }
     }
 
