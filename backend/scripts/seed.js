@@ -1,6 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 // Impor Model
 const User = require('../src/models/User');
@@ -41,7 +41,9 @@ const seedDatabase = async () => {
 
     // 2. Buat Admin
     const admin = await User.create({
-      nama: 'Admin Sirkula', email: 'admin@sirkula.id', password: hashedPassword, role: 'admin', noTelp: '080011112222'
+      nama: 'Admin Sirkula', email: 'admin@sirkula.id', password: hashedPassword, role: 'admin', noTelp: '080011112222',
+      alamat: 'Kantor Pusat Sirkula',
+      lokasi: { lat: 0, lng: 0, alamatLengkap: 'Kantor Pusat Sirkula' }
     });
 
     // 3. Buat Mitra (Pengepul)
@@ -86,10 +88,10 @@ const seedDatabase = async () => {
       const transaksi = await Transaksi.create({
         userId: user._id,
         mitraId: mitra._id,
-        items: [{ jenisSampah: 'plastik', beratEstimasi: 5, hargaEstimasi: 15000 }],
+        items: [{ jenisSampah: 'plastik', beratEstimasi: 5, hargaEstimasi: 15000, hargaPerKg: 3000 }],
         totalEstimasi: 15000,
         totalAktual: status === 'selesai' ? 15000 : 0,
-        lokasiPenjemputan: user.lokasi,
+        lokasiPenjemputan: { lat: user.lokasi.lat, lng: user.lokasi.lng, alamat: user.lokasi.alamatLengkap },
         jadwalPenjemputan: new Date(),
         status: status
       });
