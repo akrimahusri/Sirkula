@@ -1,0 +1,1 @@
+// Placeholder untuk firebase.js
