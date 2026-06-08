@@ -4,14 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
-import { MessageSquare, MapPin, Truck, CheckCircle2 } from 'lucide-react';
+import { MessageSquare, MapPin, Truck, CheckCircle2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import TrackingMap from '../components/maps/TrackingMap';
 
 const DashboardMitra = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [transaksi, setTransaksi] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTrackingTransaksi, setSelectedTrackingTransaksi] = useState(null);
 
   const fetchDashboard = async () => {
     try {
@@ -114,19 +116,34 @@ const DashboardMitra = () => {
                   <StatusBadge status={t.status} />
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <button onClick={() => initChat(t._id)} className="flex-1 flex justify-center items-center gap-2 bg-gray-100 text-gray-700 py-2 rounded-lg font-medium text-sm hover:bg-gray-200">
-                    <MessageSquare size={16} /> Hubungi
-                  </button>
+                <div className="flex items-center gap-2 w-full">
                   {t.status === 'diterima' && (
-                    <button onClick={() => handleUpdateStatus(t._id, 'dijemput')} className="flex-1 flex justify-center items-center gap-2 bg-blue-100 text-blue-700 py-2 rounded-lg font-bold text-sm hover:bg-blue-200">
-                      <Truck size={16} /> Mulai Jalan
-                    </button>
+                    <>
+                      <button onClick={() => initChat(t._id)} className="flex-1 flex justify-center items-center gap-2 bg-gray-100 text-gray-700 py-2 rounded-lg font-medium text-sm hover:bg-gray-200">
+                        <MessageSquare size={16} /> Hubungi
+                      </button>
+                      <button onClick={() => handleUpdateStatus(t._id, 'dijemput')} className="flex-1 flex justify-center items-center gap-2 bg-blue-100 text-blue-700 py-2 rounded-lg font-bold text-sm hover:bg-blue-200">
+                        <Truck size={16} /> Mulai Jalan
+                      </button>
+                    </>
                   )}
                   {t.status === 'dijemput' && (
-                    <button onClick={() => navigate(`/admin`)} className="flex-1 flex justify-center items-center gap-2 bg-brand-light text-brand-green border border-brand-green py-2 rounded-lg font-bold text-sm hover:bg-brand-green hover:text-white transition-all">
-                      <CheckCircle2 size={16} /> Konfirmasi Selesai
-                    </button>
+                    <div className="flex flex-col gap-2 w-full">
+                      <div className="flex gap-2 w-full">
+                        <button onClick={() => initChat(t._id)} className="flex-1 flex justify-center items-center gap-2 bg-gray-100 text-gray-700 py-2 rounded-lg font-medium text-sm hover:bg-gray-200">
+                          <MessageSquare size={16} /> Hubungi
+                        </button>
+                        <button onClick={() => navigate(`/admin`)} className="flex-1 flex justify-center items-center gap-2 bg-brand-light text-brand-green border border-brand-green py-2 rounded-lg font-bold text-sm hover:bg-brand-green hover:text-white transition-all">
+                          <CheckCircle2 size={16} /> Konfirmasi Selesai
+                        </button>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedTrackingTransaksi(t)}
+                        className="w-full flex justify-center items-center gap-2 bg-blue-100 text-blue-700 py-2.5 rounded-lg font-bold text-sm hover:bg-blue-200 transition-all"
+                      >
+                        <MapPin size={16} /> Buka Peta Tracking & Simulasi
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -134,6 +151,44 @@ const DashboardMitra = () => {
           )}
         </div>
       </div>
+
+      {/* Modal Peta Tracking & Simulasi */}
+      {selectedTrackingTransaksi && (
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full flex flex-col gap-4 relative shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setSelectedTrackingTransaksi(null)} 
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-all animate-none"
+            >
+              <X size={20} />
+            </button>
+            
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">
+                Peta Pelacakan & Simulasi Penjemputan
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Pelanggan: <span className="font-semibold text-gray-700">{selectedTrackingTransaksi.userId?.nama}</span>
+              </p>
+            </div>
+
+            <div className="w-full">
+              <TrackingMap 
+                transaksiId={selectedTrackingTransaksi._id}
+                token={token}
+                initialMitraPos={{ 
+                  lat: user?.areaCoverage?.pusat?.lat || -6.200000, 
+                  lng: user?.areaCoverage?.pusat?.lng || 106.816666 
+                }}
+                userPos={{ 
+                  lat: selectedTrackingTransaksi.lokasiPenjemputan?.lat, 
+                  lng: selectedTrackingTransaksi.lokasiPenjemputan?.lng 
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

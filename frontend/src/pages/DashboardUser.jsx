@@ -4,13 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import StatusBadge from '../components/shared/StatusBadge';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
-import { Wallet, Package, Gift, ChevronRight, MessageSquare } from 'lucide-react';
+import { Wallet, Package, Gift, ChevronRight, MessageSquare, X } from 'lucide-react';
+import TrackingMap from '../components/maps/TrackingMap';
 
 const DashboardUser = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
   const [transaksi, setTransaksi] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTrackingTransaksi, setSelectedTrackingTransaksi] = useState(null);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -103,7 +105,10 @@ const DashboardUser = () => {
                     </button>
                   )}
                   {t.status === 'dijemput' && (
-                    <button className="flex-1 md:flex-none px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold tracking-wide">
+                    <button 
+                      onClick={() => setSelectedTrackingTransaksi(t)}
+                      className="flex-1 md:flex-none px-4 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold tracking-wide hover:bg-blue-200 transition-colors"
+                    >
                       Lihat Peta Tracking
                     </button>
                   )}
@@ -113,6 +118,44 @@ const DashboardUser = () => {
           )}
         </div>
       </div>
+
+      {/* Modal Peta Tracking */}
+      {selectedTrackingTransaksi && (
+        <div className="fixed inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full flex flex-col gap-4 relative shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setSelectedTrackingTransaksi(null)} 
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-all animate-none"
+            >
+              <X size={20} />
+            </button>
+            
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">
+                Peta Pelacakan Penjemputan
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Mitra: <span className="font-semibold text-gray-700">{selectedTrackingTransaksi.mitraId?.namaUsaha}</span>
+              </p>
+            </div>
+
+            <div className="w-full">
+              <TrackingMap 
+                transaksiId={selectedTrackingTransaksi._id}
+                token={token}
+                initialMitraPos={{ 
+                  lat: selectedTrackingTransaksi.mitraId?.areaCoverage?.pusat?.lat, 
+                  lng: selectedTrackingTransaksi.mitraId?.areaCoverage?.pusat?.lng 
+                }}
+                userPos={{ 
+                  lat: selectedTrackingTransaksi.lokasiPenjemputan?.lat, 
+                  lng: selectedTrackingTransaksi.lokasiPenjemputan?.lng 
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

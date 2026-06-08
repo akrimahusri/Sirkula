@@ -1,93 +1,117 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
 import api from '../../services/api';
 
+// Custom icons to avoid Leaflet marker image loading issues in build tools
+const userIcon = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const mitraIcon = L.icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 const MapPicker = ({ onLocationSelect, initialLocation }) => {
   const mapRef = useRef(null);
-  const [map, setMap] = useState(null);
-  const [marker, setMarker] = useState(null);
+  const mapInstanceRef = useRef(null);
+  const markerInstanceRef = useRef(null);
+  const mitraLayerGroupRef = useRef(null);
+
   const [address, setAddress] = useState('');
-  const [nearbyMitra, setNearbyMitra] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
-
   useEffect(() => {
-    const initMap = async () => {
-      const loader = new Loader({
-        apiKey: GOOGLE_MAPS_API_KEY,
-        version: 'weekly',
-        libraries: ['places']
-      });
+    const defaultLocation = initialLocation || { lat: -6.200000, lng: 106.816666 }; // Default Jakarta
 
-      try {
-        const { Map } = await loader.importLibrary('maps');
-        const { Marker } = await loader.importLibrary('marker');
+    // Initialize Leaflet Map
+    const map = L.map(mapRef.current).setView([defaultLocation.lat, defaultLocation.lng], 14);
+    mapInstanceRef.current = map;
 
-        const defaultLocation = initialLocation || { lat: -6.200000, lng: 106.816666 }; // Default Jakarta
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
 
-        const mapInstance = new Map(mapRef.current, {
-          center: defaultLocation,
-          zoom: 14,
-          mapTypeControl: false,
-        });
+    // Draggable User Marker
+    const marker = L.marker([defaultLocation.lat, defaultLocation.lng], {
+      draggable: true,
+      icon: userIcon
+    }).addTo(map);
+    markerInstanceRef.current = marker;
 
-        const markerInstance = new Marker({
-          position: defaultLocation,
-          map: mapInstance,
-          draggable: true,
-          animation: window.google.maps.Animation.DROP,
-        });
+    // Layer Group for Mitra Markers
+    const mitraLayerGroup = L.layerGroup().addTo(map);
+    mitraLayerGroupRef.current = mitraLayerGroup;
 
-        setMap(mapInstance);
-        setMarker(markerInstance);
-        setIsLoading(false);
+    setIsLoading(false);
 
-        // Jika browser mensupport Geolocation, ambil lokasi terkini
-        if (!initialLocation && navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition((position) => {
-            const currentPos = { lat: position.coords.latitude, lng: position.coords.longitude };
-            mapInstance.setCenter(currentPos);
-            markerInstance.setPosition(currentPos);
-            handleLocationChange(currentPos);
-          });
-        } else {
-          handleLocationChange(defaultLocation);
+    // Jika browser mendukung Geolocation, ambil lokasi terkini
+    if (!initialLocation && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const currentPos = { lat: position.coords.latitude, lng: position.coords.longitude };
+          map.setView([currentPos.lat, currentPos.lng], 14);
+          marker.setLatLng([currentPos.lat, currentPos.lng]);
+          handleLocationChange(currentPos.lat, currentPos.lng);
+        },
+        (error) => {
+          console.warn('Geolocation error, falling back to default:', error);
+          handleLocationChange(defaultLocation.lat, defaultLocation.lng);
         }
+      );
+    } else {
+      handleLocationChange(defaultLocation.lat, defaultLocation.lng);
+    }
 
-        // Event listener saat marker di-drag
-        markerInstance.addListener('dragend', () => {
-          const position = markerInstance.getPosition();
-          handleLocationChange({ lat: position.lat(), lng: position.lng() });
-        });
+    // Event listener saat marker di-drag
+    marker.on('dragend', (e) => {
+      const position = e.target.getLatLng();
+      handleLocationChange(position.lat, position.lng);
+    });
 
-      } catch (error) {
-        console.error('Error memuat Google Maps:', error);
-        setIsLoading(false);
+    // Cleanup on unmount
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
       }
     };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    initMap();
-  }, []);
-
-  const handleLocationChange = async (latLng) => {
-    // Reverse Geocoding
+  const handleLocationChange = async (lat, lng) => {
     try {
-      const geocoder = new window.google.maps.Geocoder();
-      const response = await geocoder.geocode({ location: latLng });
+      // Nominatim reverse geocoding
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+      const data = await response.json();
       
-      let formattedAddress = 'Lokasi tidak diketahui';
-      if (response.results[0]) {
-        formattedAddress = response.results[0].formatted_address;
-      }
+      const formattedAddress = data.display_name || `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
       setAddress(formattedAddress);
-      onLocationSelect(latLng.lat, latLng.lng, formattedAddress);
+      
+      if (onLocationSelect) {
+        onLocationSelect(lat, lng, formattedAddress);
+      }
 
       // Fetch mitra terdekat
-      fetchNearbyMitra(latLng.lat, latLng.lng);
+      fetchNearbyMitra(lat, lng);
     } catch (error) {
       console.error('Geocoder failed:', error);
+      const fallbackAddress = `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      setAddress(fallbackAddress);
+      if (onLocationSelect) {
+        onLocationSelect(lat, lng, fallbackAddress);
+      }
+      fetchNearbyMitra(lat, lng);
     }
   };
 
@@ -95,7 +119,6 @@ const MapPicker = ({ onLocationSelect, initialLocation }) => {
     try {
       const res = await api.get(`/api/pickup/mitra/nearby?lat=${lat}&lng=${lng}&radius=10`);
       if (res.data.success) {
-        setNearbyMitra(res.data.data);
         renderMitraMarkers(res.data.data);
       }
     } catch (error) {
@@ -104,31 +127,33 @@ const MapPicker = ({ onLocationSelect, initialLocation }) => {
   };
 
   const renderMitraMarkers = (mitras) => {
-    if (!map) return;
+    if (!mapInstanceRef.current || !mitraLayerGroupRef.current) return;
+    
+    // Hapus marker lama
+    mitraLayerGroupRef.current.clearLayers();
     
     mitras.forEach(mitra => {
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `
-          <div style="padding: 8px;">
-            <h3 style="font-weight: bold; margin-bottom: 4px;">${mitra.namaUsaha}</h3>
-            <p style="font-size: 12px; color: #666;">⭐ ${mitra.rating} | Jarak: ${mitra.jarak.toFixed(2)} km</p>
-            <button onclick="alert('Memilih ${mitra.namaUsaha}')" style="margin-top: 8px; background: #16a34a; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Pilih Mitra</button>
-          </div>
-        `
-      });
+      const popupContent = `
+        <div style="padding: 4px; font-family: sans-serif; min-width: 140px;">
+          <h3 style="font-weight: bold; margin: 0 0 4px 0; font-size: 14px; color: #111827;">${mitra.namaUsaha}</h3>
+          <p style="font-size: 12px; color: #4B5563; margin: 0 0 8px 0;">⭐ ${mitra.rating} | Jarak: ${mitra.jarak.toFixed(2)} km</p>
+          <button id="btn-select-mitra-${mitra._id}" style="background: #16a34a; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; transition: background 0.2s;">Pilih Mitra</button>
+        </div>
+      `;
 
-      const mMarker = new window.google.maps.Marker({
-        position: { lat: mitra.areaCoverage.pusat.lat, lng: mitra.areaCoverage.pusat.lng },
-        map: map,
-        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-        title: mitra.namaUsaha
-      });
+      const mMarker = L.marker([mitra.areaCoverage.pusat.lat, mitra.areaCoverage.pusat.lng], {
+        icon: mitraIcon
+      }).addTo(mitraLayerGroupRef.current);
 
-      mMarker.addListener('click', () => {
-        infoWindow.open({
-          anchor: mMarker,
-          map,
-        });
+      mMarker.bindPopup(popupContent);
+
+      mMarker.on('popupopen', () => {
+        const btn = document.getElementById(`btn-select-mitra-${mitra._id}`);
+        if (btn) {
+          btn.onclick = () => {
+            window.location.href = `/mitra/${mitra._id}`;
+          };
+        }
       });
     });
   };
@@ -145,7 +170,7 @@ const MapPicker = ({ onLocationSelect, initialLocation }) => {
       
       <div 
         ref={mapRef} 
-        className="w-full h-full rounded-lg shadow-inner overflow-hidden border border-gray-200" 
+        className="w-full h-full rounded-lg shadow-inner overflow-hidden border border-gray-200 z-10" 
         style={{ minHeight: '350px' }}
       />
     </div>
