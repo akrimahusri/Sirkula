@@ -37,8 +37,6 @@ router.post(
     emailValidation,
     passwordValidation,
     noTelpValidation,
-    body('nama').notEmpty().withMessage('Nama / Nama Usaha tidak boleh kosong'),
-    body('alamat').notEmpty().withMessage('Alamat tidak boleh kosong'),
     body('role').isIn(['user', 'mitra', 'admin']).withMessage('Role tidak valid')
   ],
   authController.register

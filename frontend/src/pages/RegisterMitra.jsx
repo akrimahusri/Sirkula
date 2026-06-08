@@ -33,7 +33,8 @@ const RegisterMitra = () => {
         }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Gagal mendaftar');
+      const errorMsg = error.response?.data?.errors?.[0]?.message || error.response?.data?.message || 'Gagal mendaftar';
+      toast.error(errorMsg);
     }
   };
 
