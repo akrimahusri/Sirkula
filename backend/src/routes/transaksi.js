@@ -31,4 +31,7 @@ router.patch('/:id/status', requireRole('user', 'mitra'), transaksiController.up
 // Mitra: Konfirmasi final
 router.post('/:id/konfirmasi', requireRole('mitra'), transaksiController.konfirmasiTransaksi);
 
+// User: Beri Rating
+router.post('/:id/rating', requireRole('user'), transaksiController.beriRating);
+
 module.exports = router;

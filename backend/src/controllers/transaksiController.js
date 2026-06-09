@@ -144,3 +144,40 @@ exports.konfirmasiTransaksi = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.beriRating = async (req, res, next) => {
+  try {
+    const { rating, ulasan } = req.body;
+    const userId = req.user.id;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Rating harus antara 1 sampai 5', statusCode: 400 });
+    }
+
+    const transaksi = await Transaksi.findById(req.params.id);
+    if (!transaksi) return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan', statusCode: 404 });
+    if (transaksi.userId.toString() !== userId) return res.status(403).json({ success: false, message: 'Akses ditolak', statusCode: 403 });
+    if (transaksi.status !== 'selesai') return res.status(400).json({ success: false, message: 'Hanya transaksi selesai yang dapat diberi rating', statusCode: 400 });
+    if (transaksi.rating) return res.status(400).json({ success: false, message: 'Transaksi ini sudah diberi rating', statusCode: 400 });
+
+    transaksi.rating = rating;
+    transaksi.ulasan = ulasan || '';
+    await transaksi.save();
+
+    const mitra = await Mitra.findById(transaksi.mitraId);
+    if (mitra) {
+      const oldRating = mitra.rating || 0;
+      const oldJumlahUlasan = mitra.jumlahUlasan || 0;
+      
+      const newRating = ((oldRating * oldJumlahUlasan) + rating) / (oldJumlahUlasan + 1);
+      
+      mitra.rating = Number(newRating.toFixed(1)); // Membulatkan ke 1 angka di belakang koma
+      mitra.jumlahUlasan = oldJumlahUlasan + 1;
+      await mitra.save();
+    }
+
+    res.status(200).json({ success: true, message: 'Rating berhasil dikirim', data: transaksi, statusCode: 200 });
+  } catch (error) {
+    next(error);
+  }
+};

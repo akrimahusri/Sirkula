@@ -66,6 +66,7 @@ const mitraSchema = new mongoose.Schema(
       },
     },
     rating: { type: Number, default: 0 },
+    jumlahUlasan: { type: Number, default: 0 },
     totalTransaksi: { type: Number, default: 0 },
     isVerified: { type: Boolean, default: false },
     dokumenLegalitas: { type: String, default: '' },

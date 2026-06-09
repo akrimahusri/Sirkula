@@ -64,6 +64,8 @@ const transaksiSchema = new mongoose.Schema(
     foto: [{ type: String }],
     chatId: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat' },
     alasanBatal: { type: String, default: '' },
+    rating: { type: Number, default: null },
+    ulasan: { type: String, default: '' },
   },
   { timestamps: true }
 );
