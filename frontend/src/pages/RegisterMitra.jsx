@@ -57,6 +57,7 @@ const RegisterMitra = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Nomor Telepon</label>
             <input type="text" required value={formData.noTelp} onChange={e => setFormData({...formData, noTelp: e.target.value})} className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+            <p className="text-xs text-gray-500 mt-1">Harus diawali dengan 08 (contoh: 08123456789)</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Alamat Usaha</label>
@@ -65,6 +66,7 @@ const RegisterMitra = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Password</label>
             <input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" />
+            <p className="text-xs text-gray-500 mt-1">Minimal 8 karakter dan harus mengandung setidaknya satu angka</p>
           </div>
           <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors mt-4">
             Daftar Mitra

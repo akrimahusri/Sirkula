@@ -16,6 +16,7 @@ import RegisterUser from './pages/RegisterUser';
 import RegisterMitra from './pages/RegisterMitra';
 import DashboardUser from './pages/DashboardUser';
 import DashboardMitra from './pages/DashboardMitra';
+import PengaturanMitra from './pages/PengaturanMitra';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
                 {/* Dashboard Khusus Mitra */}
                 <Route element={<ProtectedRoute allowedRoles={['mitra']} />}>
                   <Route path="/dashboard/mitra" element={<DashboardMitra />} />
+                  <Route path="/pengaturan/mitra" element={<PengaturanMitra />} />
                 </Route>
 
                 {/* Khusus Admin */}

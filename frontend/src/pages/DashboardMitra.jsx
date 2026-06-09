@@ -96,9 +96,17 @@ const DashboardMitra = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-extrabold text-gray-900">{user?.namaUsaha}</h1>
-        <p className="text-gray-500">Kelola permintaan penjemputan sampah hari ini.</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gray-900">{user?.namaUsaha || user?.nama}</h1>
+          <p className="text-gray-500">Kelola permintaan penjemputan sampah hari ini.</p>
+        </div>
+        <button 
+          onClick={() => navigate('/pengaturan/mitra')}
+          className="bg-brand-green hover:bg-brand-dark text-white px-5 py-2.5 rounded-lg font-bold transition-colors shadow-sm text-sm"
+        >
+          Pengaturan Profil & Katalog
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

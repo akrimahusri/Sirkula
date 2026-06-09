@@ -47,6 +47,7 @@ exports.register = async (req, res, next) => {
         password,
         noTelp,
         alamatUsaha: alamatUsaha || alamat,
+        isVerified: true,
         areaCoverage: {
           pusat: { lat: lat || 0, lng: lng || 0 }
         }
