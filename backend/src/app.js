@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 menit
-  max: 100, // Limit setiap IP hingga 100 requests per 15 menit
+  max: process.env.NODE_ENV === 'production' ? 100 : 2000, // Limit sangat longgar saat development
   message: { success: false, message: "Terlalu banyak permintaan dari IP ini, coba lagi nanti.", statusCode: 429 }
 });
 app.use(limiter);
