@@ -9,7 +9,7 @@ const router = express.Router();
 // Rate limiter spesifik untuk endpoint auth
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 menit
-  max: 5, // Limit setiap IP hingga 5 requests per 15 menit
+  max: process.env.NODE_ENV === 'production' ? 5 : 100, // Limit lebih longgar saat development
   message: { success: false, message: "Terlalu banyak percobaan, silakan coba lagi setelah 15 menit.", statusCode: 429 }
 });
 
